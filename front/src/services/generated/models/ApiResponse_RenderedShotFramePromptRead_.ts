@@ -21,3 +21,4 @@ export type ApiResponse_RenderedShotFramePromptRead_ = {
      */
     meta?: (Record<string, any> | null);
 };
+

@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api.v1 import router as api_v1_router
+from app.bootstrap import bootstrap_all_registries
 from app.config import settings
 from app.schemas.common import ApiResponse
 
@@ -39,7 +40,7 @@ async def http_exception_handler(request: Request, exc: Exception) -> JSONRespon
     else:
         code = 500
         message = "Internal server error"
-    body = ApiResponse[None](code=code, message=message, data=None).model_dump()
+    body = ApiResponse[None](code=code, message=message, data=None, meta=None).model_dump()
     return JSONResponse(status_code=code, content=body)
 
 
@@ -47,14 +48,15 @@ async def validation_exception_handler(request: Request, exc: Exception) -> JSON
     """422 校验异常统一为 { code: 422, message, data: null }。"""
     assert isinstance(exc, RequestValidationError)
     message = _error_message(exc.errors())
-    body = ApiResponse[None](code=422, message=message, data=None).model_dump()
+    body = ApiResponse[None](code=422, message=message, data=None, meta=None).model_dump()
     return JSONResponse(status_code=422, content=body)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化，关闭时清理。"""
-    # 启动时：可在此初始化 DB、LangGraph 等
+    # 启动时：供应商注册 + 任务执行器注册（幂等）
+    bootstrap_all_registries()
     yield
     # 关闭时：清理资源
     pass
